@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 
 import {
+  checkMonitor,
   getMonitors,
+  type MonitorCheckResult,
   type Monitor,
 } from "./api/monitors";
 
@@ -12,6 +14,8 @@ function App() {
   const [monitors, setMonitors] = useState<Monitor[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [checking, setChecking] = useState<Record<string, boolean>>({});
+  const [checkResults, setCheckResults] = useState<Record<string, MonitorCheckResult>>({});
 
   async function loadMonitors() {
     try {
@@ -32,6 +36,29 @@ function App() {
   useEffect(() => {
     loadMonitors();
   }, []);
+
+  async function handleCheck(monitorId: string) {
+    setChecking((current) => ({
+      ...current,
+      [monitorId]: true,
+    }));
+
+    try {
+      const result = await checkMonitor(monitorId);
+
+      setCheckResults((current) => ({
+        ...current,
+        [monitorId]: result,
+      }));
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setChecking((current) => ({
+        ...current,
+        [monitorId]: false,
+      }));
+    }
+  }
 
   return (
     <div className="min-h-screen bg-zinc-950 px-6 py-10 text-white">
@@ -76,6 +103,9 @@ function App() {
               <MonitorCard
                 key={monitor._id}
                 monitor={monitor}
+                checkResult={checkResults[monitor._id]}
+                checking={checking[monitor._id] ?? false}
+                onCheck={() => handleCheck(monitor._id)}
               />
             ))}
           </div>
