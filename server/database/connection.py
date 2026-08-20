@@ -12,4 +12,4 @@ if not MONGODB_URL:
 
 client = AsyncMongoClient(MONGODB_URL)
 
-db = client.get_database("pingstack")
+db = client.get_database("PingStack")
