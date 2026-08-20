@@ -1,4 +1,18 @@
 import { useState } from "react";
+import {
+  ExternalLink,
+  Play,
+  Pause,
+  RefreshCw,
+  Edit3,
+  Trash2,
+  Clock,
+  ChevronRight,
+  CheckCircle2,
+  XCircle,
+  AlertTriangle,
+} from "lucide-react";
+
 import type {
   Monitor,
   MonitorCheckResult,
@@ -11,6 +25,7 @@ interface MonitorCardProps {
   checkResult?: MonitorCheckResult;
   history: HealthCheck[];
   checking: boolean;
+  onSelect: () => void;
   onCheck: () => void;
   onUpdate: (monitorId: string, data: Partial<MonitorCreate>) => Promise<void>;
   onDelete: (monitorId: string) => Promise<void>;
@@ -21,6 +36,7 @@ function MonitorCard({
   checkResult,
   history,
   checking,
+  onSelect,
   onCheck,
   onUpdate,
   onDelete,
@@ -45,6 +61,9 @@ function MonitorCard({
           response_time_ms: history[0].response_time_ms,
         }
       : undefined);
+
+  // Calculate 20 most recent checks for mini visual spark strip
+  const recentPills = history.slice(0, 16).reverse();
 
   async function handleSaveEdit(e: React.FormEvent) {
     e.preventDefault();
@@ -75,7 +94,8 @@ function MonitorCard({
     setIsEditing(false);
   }
 
-  async function handleToggleEnabled() {
+  async function handleToggleEnabled(e: React.MouseEvent) {
+    e.stopPropagation();
     try {
       await onUpdate(monitor._id, { enabled: !monitor.enabled });
     } catch (err) {
@@ -83,7 +103,8 @@ function MonitorCard({
     }
   }
 
-  async function handleDeleteClick() {
+  async function handleDeleteClick(e: React.MouseEvent) {
+    e.stopPropagation();
     if (!confirmDelete) {
       setConfirmDelete(true);
       return;
@@ -99,15 +120,26 @@ function MonitorCard({
   }
 
   return (
-    <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5 transition-all">
+    <div
+      onClick={() => {
+        if (!isEditing) onSelect();
+      }}
+      className="group relative rounded-2xl border border-zinc-800/80 bg-zinc-900/60 p-5 backdrop-blur-sm transition-all duration-200 hover:border-zinc-700 hover:bg-zinc-900/90 hover:shadow-xl hover:shadow-black/40 cursor-pointer"
+    >
       {isEditing ? (
-        <form onSubmit={handleSaveEdit} className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-white">Edit Monitor</h3>
+        <form
+          onSubmit={handleSaveEdit}
+          onClick={(e) => e.stopPropagation()}
+          className="space-y-4"
+        >
+          <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+            <h3 className="text-base font-semibold text-white">
+              Edit Monitor
+            </h3>
             <button
               type="button"
               onClick={handleCancelEdit}
-              className="text-sm text-zinc-400 hover:text-white"
+              className="text-xs text-zinc-400 hover:text-white"
             >
               ✕ Cancel
             </button>
@@ -122,7 +154,7 @@ function MonitorCard({
               value={editName}
               onChange={(e) => setEditName(e.target.value)}
               required
-              className="w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-white outline-none focus:border-zinc-500"
+              className="w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-white outline-none focus:border-emerald-500"
             />
           </div>
 
@@ -135,14 +167,14 @@ function MonitorCard({
               value={editUrl}
               onChange={(e) => setEditUrl(e.target.value)}
               required
-              className="w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-white outline-none focus:border-zinc-500"
+              className="w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-white outline-none focus:border-emerald-500"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="mb-1 block text-xs font-medium text-zinc-400">
-                Check Interval (seconds)
+                Interval (sec)
               </label>
               <input
                 type="number"
@@ -150,20 +182,20 @@ function MonitorCard({
                 value={editInterval}
                 onChange={(e) => setEditInterval(Number(e.target.value))}
                 required
-                className="w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-white outline-none focus:border-zinc-500"
+                className="w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-white outline-none focus:border-emerald-500"
               />
             </div>
 
             <div>
               <label className="mb-1 block text-xs font-medium text-zinc-400">
-                Monitoring Status
+                Auto-Monitoring
               </label>
-              <label className="flex h-[38px] cursor-pointer items-center gap-2 rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm">
+              <label className="flex h-[38px] cursor-pointer items-center gap-2 rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-white">
                 <input
                   type="checkbox"
                   checked={editEnabled}
                   onChange={(e) => setEditEnabled(e.target.checked)}
-                  className="rounded border-zinc-700"
+                  className="rounded border-zinc-700 text-emerald-500"
                 />
                 <span className="text-xs text-zinc-300">
                   {editEnabled ? "Active" : "Paused"}
@@ -172,69 +204,95 @@ function MonitorCard({
             </div>
           </div>
 
-          {editError && <p className="text-xs text-red-400">{editError}</p>}
+          {editError && (
+            <p className="text-xs font-medium text-red-400">{editError}</p>
+          )}
 
           <div className="flex items-center gap-2 pt-2">
             <button
               type="submit"
               disabled={saving}
-              className="rounded-lg bg-white px-4 py-1.5 text-sm font-medium text-black transition-colors hover:bg-zinc-200 disabled:opacity-50"
+              className="rounded-xl bg-white px-4 py-1.5 text-sm font-semibold text-black transition-colors hover:bg-zinc-200 disabled:opacity-50"
             >
               {saving ? "Saving..." : "Save Changes"}
             </button>
             <button
               type="button"
               onClick={handleCancelEdit}
-              className="rounded-lg border border-zinc-700 px-4 py-1.5 text-sm font-medium text-zinc-300 transition-colors hover:bg-zinc-800"
+              className="rounded-xl border border-zinc-700 px-4 py-1.5 text-sm font-medium text-zinc-300 transition-colors hover:bg-zinc-800"
             >
               Cancel
             </button>
           </div>
         </form>
       ) : (
-        <>
-          <div className="flex items-start justify-between gap-4">
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <h2 className="truncate text-lg font-semibold text-white">
+        <div className="space-y-4">
+          {/* Card Header */}
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1 space-y-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="truncate text-lg font-bold text-white transition-colors group-hover:text-emerald-400">
                   {monitor.name}
-                </h2>
+                </h3>
+
                 <span
-                  className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
+                  className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
                     monitor.enabled
-                      ? "border border-green-800/40 bg-green-950/60 text-green-400"
-                      : "border border-zinc-700 bg-zinc-800 text-zinc-400"
+                      ? "border border-emerald-800/40 bg-emerald-950/60 text-emerald-400"
+                      : "border border-zinc-700 bg-zinc-800/80 text-zinc-400"
                   }`}
                 >
                   <span
                     className={`h-1.5 w-1.5 rounded-full ${
-                      monitor.enabled ? "animate-pulse bg-green-400" : "bg-zinc-500"
+                      monitor.enabled
+                        ? "animate-pulse bg-emerald-400"
+                        : "bg-zinc-500"
                     }`}
                   />
                   {monitor.enabled ? "Active" : "Paused"}
                 </span>
               </div>
 
-              <p className="mt-1 break-all text-sm text-zinc-400">
-                {monitor.url}
-              </p>
+              <div className="flex items-center gap-1 text-xs text-zinc-400">
+                <span className="truncate">{monitor.url}</span>
+                <ExternalLink
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    window.open(monitor.url, "_blank");
+                  }}
+                  className="h-3 w-3 opacity-60 hover:opacity-100 hover:text-emerald-400"
+                />
+              </div>
             </div>
 
-            <div className="flex items-center gap-1.5">
+            {/* Quick Actions Menu */}
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="flex items-center gap-1"
+            >
               <button
                 onClick={handleToggleEnabled}
-                title={monitor.enabled ? "Pause auto-monitoring" : "Resume auto-monitoring"}
-                className={`rounded-lg px-2.5 py-1 text-xs font-medium transition-colors ${
+                title={
                   monitor.enabled
-                    ? "border border-amber-800/60 bg-amber-950/30 text-amber-300 hover:bg-amber-900/40"
-                    : "border border-green-800/60 bg-green-950/30 text-green-300 hover:bg-green-900/40"
+                    ? "Pause auto-monitoring"
+                    : "Resume auto-monitoring"
+                }
+                className={`rounded-lg p-1.5 text-xs font-medium transition-all ${
+                  monitor.enabled
+                    ? "border border-zinc-800 bg-zinc-950 text-zinc-400 hover:border-amber-700/60 hover:bg-amber-950/30 hover:text-amber-300"
+                    : "border border-zinc-800 bg-zinc-950 text-zinc-400 hover:border-emerald-700/60 hover:bg-emerald-950/30 hover:text-emerald-300"
                 }`}
               >
-                {monitor.enabled ? "⏸ Pause" : "▶ Resume"}
+                {monitor.enabled ? (
+                  <Pause className="h-3.5 w-3.5" />
+                ) : (
+                  <Play className="h-3.5 w-3.5" />
+                )}
               </button>
 
               <button
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
                   setEditName(monitor.name);
                   setEditUrl(monitor.url);
                   setEditInterval(monitor.interval);
@@ -242,115 +300,126 @@ function MonitorCard({
                   setIsEditing(true);
                 }}
                 title="Edit monitor"
-                className="rounded-lg border border-zinc-700 bg-zinc-800/50 px-2.5 py-1 text-xs font-medium text-zinc-300 transition-colors hover:bg-zinc-700 hover:text-white"
+                className="rounded-lg border border-zinc-800 bg-zinc-950 p-1.5 text-zinc-400 transition-all hover:border-zinc-700 hover:bg-zinc-800 hover:text-white"
               >
-                ✏ Edit
+                <Edit3 className="h-3.5 w-3.5" />
               </button>
 
               <button
                 onClick={handleDeleteClick}
                 disabled={deleting}
                 title="Delete monitor"
-                className={`rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors ${
+                className={`rounded-lg border p-1.5 text-xs transition-all ${
                   confirmDelete
-                    ? "border-red-600 bg-red-600 text-white hover:bg-red-700"
-                    : "border-zinc-800 bg-zinc-950/60 text-zinc-400 hover:border-red-800/60 hover:bg-red-950/40 hover:text-red-300"
+                    ? "border-red-600 bg-red-600 text-white"
+                    : "border-zinc-800 bg-zinc-950 text-zinc-400 hover:border-red-800/60 hover:bg-red-950/40 hover:text-red-300"
                 }`}
               >
-                {deleting ? "Deleting..." : confirmDelete ? "Confirm Delete?" : "🗑 Delete"}
+                <Trash2 className="h-3.5 w-3.5" />
               </button>
-              {confirmDelete && (
-                <button
-                  onClick={() => setConfirmDelete(false)}
-                  className="rounded-lg border border-zinc-700 bg-zinc-800 px-2 py-1 text-xs text-zinc-400 hover:text-white"
-                >
-                  ✕
-                </button>
-              )}
             </div>
           </div>
 
-          <div className="mt-3 flex items-center gap-4 text-xs text-zinc-500">
-            <span>Check interval: {monitor.interval}s</span>
-            <span>•</span>
-            <span>
-              Auto-checking:{" "}
-              <strong className={monitor.enabled ? "font-normal text-green-400" : "font-normal text-zinc-400"}>
-                {monitor.enabled ? `Every ${monitor.interval}s` : "Paused"}
-              </strong>
-            </span>
-          </div>
-
-          {latestCheck && (
-            <div className="mt-5 rounded-lg border border-zinc-800 bg-zinc-950 p-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-zinc-400">Status</span>
+          {/* Quick Metrics Bar */}
+          <div className="grid grid-cols-3 gap-2 rounded-xl border border-zinc-800/80 bg-zinc-950/50 p-3">
+            {/* Status */}
+            <div>
+              <span className="text-[10px] uppercase tracking-wider text-zinc-500">
+                Status
+              </span>
+              <div className="mt-0.5 flex items-center gap-1.5">
+                {latestCheck?.status === "healthy" ? (
+                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
+                ) : latestCheck?.status === "unhealthy" ? (
+                  <XCircle className="h-3.5 w-3.5 text-red-400" />
+                ) : (
+                  <AlertTriangle className="h-3.5 w-3.5 text-amber-400" />
+                )}
                 <span
-                  className={`text-sm font-medium ${
-                    latestCheck.status === "healthy"
-                      ? "text-green-400"
-                      : latestCheck.status === "unhealthy"
-                        ? "text-red-400"
-                        : "text-yellow-400"
+                  className={`text-xs font-semibold ${
+                    latestCheck?.status === "healthy"
+                      ? "text-emerald-400"
+                      : latestCheck?.status === "unhealthy"
+                      ? "text-red-400"
+                      : "text-amber-400"
                   }`}
                 >
-                  {latestCheck.status}
+                  {latestCheck ? latestCheck.status : "Pending"}
                 </span>
               </div>
+            </div>
 
-              <div className="mt-2 flex items-center justify-between">
-                <span className="text-sm text-zinc-400">HTTP Status</span>
-                <span className="text-sm">{latestCheck.status_code ?? "N/A"}</span>
-              </div>
+            {/* Response Time */}
+            <div>
+              <span className="text-[10px] uppercase tracking-wider text-zinc-500">
+                Latency
+              </span>
+              <p className="mt-0.5 font-mono text-xs font-bold text-white">
+                {latestCheck ? `${latestCheck.response_time_ms} ms` : "—"}
+              </p>
+            </div>
 
-              <div className="mt-2 flex items-center justify-between">
-                <span className="text-sm text-zinc-400">Response Time</span>
-                <span className="text-sm">{latestCheck.response_time_ms} ms</span>
+            {/* Interval */}
+            <div>
+              <span className="text-[10px] uppercase tracking-wider text-zinc-500">
+                Interval
+              </span>
+              <div className="mt-0.5 flex items-center gap-1 text-xs text-zinc-300">
+                <Clock className="h-3 w-3 text-zinc-500" />
+                <span>{monitor.interval}s</span>
               </div>
             </div>
-          )}
+          </div>
 
-          {history.length > 0 && (
-            <div className="mt-5">
-              <h3 className="text-sm font-medium text-zinc-300">Recent Checks</h3>
-
-              <div className="mt-3 space-y-2">
-                {history.slice(0, 5).map((check, index) => (
+          {/* Recent Checks Mini Sparkline Strip */}
+          {recentPills.length > 0 && (
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-[11px] text-zinc-500">
+                <span>Recent Check History</span>
+                <span className="text-zinc-400">{history.length} total checks</span>
+              </div>
+              <div className="flex h-4 items-center gap-1 rounded-lg bg-zinc-950/80 px-2 py-1">
+                {recentPills.map((p, i) => (
                   <div
-                    key={`${check.checked_at}-${index}`}
-                    className="flex items-center justify-between rounded-lg bg-zinc-950 px-3 py-2 text-sm"
-                  >
-                    <span
-                      className={
-                        check.status === "healthy"
-                          ? "text-green-400"
-                          : check.status === "unhealthy"
-                            ? "text-red-400"
-                            : "text-yellow-400"
-                      }
-                    >
-                      ● {check.status}
-                    </span>
-
-                    <span className="text-zinc-400">{check.response_time_ms} ms</span>
-
-                    <span className="text-zinc-500">
-                      {new Date(check.checked_at).toLocaleTimeString()}
-                    </span>
-                  </div>
+                    key={`${p.checked_at}-${i}`}
+                    title={`${p.status} - ${p.response_time_ms}ms at ${new Date(
+                      p.checked_at
+                    ).toLocaleTimeString()}`}
+                    className={`h-2 flex-1 rounded-sm transition-all hover:scale-125 ${
+                      p.status === "healthy"
+                        ? "bg-emerald-400"
+                        : p.status === "unhealthy"
+                        ? "bg-red-400"
+                        : "bg-amber-400"
+                    }`}
+                  />
                 ))}
               </div>
             </div>
           )}
 
-          <button
-            onClick={onCheck}
-            disabled={checking}
-            className="mt-5 rounded-lg bg-white px-4 py-2 text-sm font-medium text-black transition-colors hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {checking ? "Checking..." : "Check Now"}
-          </button>
-        </>
+          {/* Footer Action Row */}
+          <div className="flex items-center justify-between pt-1">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onCheck();
+              }}
+              disabled={checking}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-700/80 bg-zinc-800/60 px-3 py-1.5 text-xs font-medium text-zinc-200 transition-all hover:bg-zinc-700 hover:text-white disabled:opacity-50"
+            >
+              <RefreshCw
+                className={`h-3 w-3 ${checking ? "animate-spin" : ""}`}
+              />
+              <span>{checking ? "Checking..." : "Check Now"}</span>
+            </button>
+
+            <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-400 transition-transform group-hover:translate-x-1">
+              <span>View Graph & Analytics</span>
+              <ChevronRight className="h-3.5 w-3.5" />
+            </span>
+          </div>
+        </div>
       )}
     </div>
   );
