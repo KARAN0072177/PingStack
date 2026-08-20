@@ -1,11 +1,13 @@
 import type {
   Monitor,
   MonitorCheckResult,
+  HealthCheck
 } from "../api/monitors";
 
 interface MonitorCardProps {
   monitor: Monitor;
   checkResult?: MonitorCheckResult;
+  history: HealthCheck[];
   checking: boolean;
   onCheck: () => void;
 }
@@ -13,6 +15,7 @@ interface MonitorCardProps {
 function MonitorCard({
   monitor,
   checkResult,
+  history,
   checking,
   onCheck,
 }: MonitorCardProps) {
@@ -83,6 +86,43 @@ function MonitorCard({
           </div>
         </div>
       )}
+
+      {history.length > 0 && (
+  <div className="mt-5">
+    <h3 className="text-sm font-medium text-zinc-300">
+      Recent Checks
+    </h3>
+
+    <div className="mt-3 space-y-2">
+      {history.slice(0, 5).map((check, index) => (
+        <div
+          key={`${check.checked_at}-${index}`}
+          className="flex items-center justify-between rounded-lg bg-zinc-950 px-3 py-2 text-sm"
+        >
+          <span
+            className={
+              check.status === "healthy"
+                ? "text-green-400"
+                : check.status === "unhealthy"
+                  ? "text-red-400"
+                  : "text-yellow-400"
+            }
+          >
+            ● {check.status}
+          </span>
+
+          <span className="text-zinc-400">
+            {check.response_time_ms} ms
+          </span>
+
+          <span className="text-zinc-500">
+            {new Date(check.checked_at).toLocaleTimeString()}
+          </span>
+        </div>
+      ))}
+    </div>
+  </div>
+)}
 
       <button
         onClick={onCheck}

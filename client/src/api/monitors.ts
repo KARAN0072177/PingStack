@@ -20,6 +20,13 @@ export interface MonitorCheckResult {
   response_time_ms: number;
 }
 
+export interface HealthCheck {
+  status: "healthy" | "unhealthy" | "unreachable";
+  status_code: number | null;
+  response_time_ms: number;
+  checked_at: string;
+}
+
 const API_URL = "http://127.0.0.1:8000";
 
 // get all monitors
@@ -67,6 +74,22 @@ export async function checkMonitor(
 
   if (!response.ok) {
     throw new Error("Failed to check monitor");
+  }
+
+  return response.json();
+}
+
+// get a specific monitor's history
+
+export async function getMonitorHistory(
+  monitorId: string
+): Promise<HealthCheck[]> {
+  const response = await fetch(
+    `${API_URL}/api/monitors/${monitorId}/history`
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch monitor history");
   }
 
   return response.json();
