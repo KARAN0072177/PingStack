@@ -20,9 +20,11 @@ function App() {
   const [checkResults, setCheckResults] = useState<Record<string, MonitorCheckResult>>({});
   const [history, setHistory] = useState<Record<string, HealthCheck[]>>({});
 
-  async function loadMonitors() {
+  async function loadMonitors(isInitial = false) {
     try {
-      setLoading(true);
+      if (isInitial) {
+        setLoading(true);
+      }
       setError("");
 
       const data = await getMonitors();
@@ -42,15 +44,26 @@ function App() {
       setHistory(Object.fromEntries(historyEntries));
     } catch (error) {
       console.error(error);
-      setError("Failed to load monitors");
+      if (isInitial) {
+        setError("Failed to load monitors");
+      }
     } finally {
-      setLoading(false);
+      if (isInitial) {
+        setLoading(false);
+      }
     }
   }
 
   useEffect(() => {
-    loadMonitors();
+    loadMonitors(true);
+
+    const intervalId = setInterval(() => {
+      loadMonitors(false);
+    }, 5000);
+
+    return () => clearInterval(intervalId);
   }, []);
+
 
   async function handleCheck(monitorId: string) {
     setChecking((current) => ({

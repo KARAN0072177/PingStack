@@ -19,6 +19,17 @@ function MonitorCard({
   checking,
   onCheck,
 }: MonitorCardProps) {
+  const latestCheck =
+    checkResult ??
+    (history.length > 0
+      ? {
+          monitor: monitor.name,
+          status: history[0].status,
+          status_code: history[0].status_code,
+          response_time_ms: history[0].response_time_ms,
+        }
+      : undefined);
+
   return (
     <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
       <div className="flex items-center justify-between">
@@ -45,7 +56,7 @@ function MonitorCard({
         Check interval: {monitor.interval}s
       </p>
 
-      {checkResult && (
+      {latestCheck && (
         <div className="mt-5 rounded-lg border border-zinc-800 bg-zinc-950 p-4">
           <div className="flex items-center justify-between">
             <span className="text-sm text-zinc-400">
@@ -54,14 +65,14 @@ function MonitorCard({
 
             <span
               className={`text-sm font-medium ${
-                checkResult.status === "healthy"
+                latestCheck.status === "healthy"
                   ? "text-green-400"
-                  : checkResult.status === "unhealthy"
+                  : latestCheck.status === "unhealthy"
                     ? "text-red-400"
                     : "text-yellow-400"
               }`}
             >
-              {checkResult.status}
+              {latestCheck.status}
             </span>
           </div>
 
@@ -71,7 +82,7 @@ function MonitorCard({
             </span>
 
             <span className="text-sm">
-              {checkResult.status_code ?? "N/A"}
+              {latestCheck.status_code ?? "N/A"}
             </span>
           </div>
 
@@ -81,11 +92,12 @@ function MonitorCard({
             </span>
 
             <span className="text-sm">
-              {checkResult.response_time_ms} ms
+              {latestCheck.response_time_ms} ms
             </span>
           </div>
         </div>
       )}
+
 
       {history.length > 0 && (
   <div className="mt-5">
