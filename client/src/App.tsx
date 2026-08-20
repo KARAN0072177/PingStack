@@ -4,8 +4,11 @@ import {
   checkMonitor,
   getMonitors,
   getMonitorHistory,
+  updateMonitor,
+  deleteMonitor,
   type MonitorCheckResult,
   type Monitor,
+  type MonitorCreate,
   type HealthCheck,
 } from "./api/monitors";
 
@@ -64,7 +67,6 @@ function App() {
     return () => clearInterval(intervalId);
   }, []);
 
-
   async function handleCheck(monitorId: string) {
     setChecking((current) => ({
       ...current,
@@ -94,6 +96,30 @@ function App() {
     }
   }
 
+  async function handleUpdate(
+    monitorId: string,
+    data: Partial<MonitorCreate>
+  ) {
+    const updated = await updateMonitor(monitorId, data);
+    setMonitors((current) =>
+      current.map((m) => (m._id === monitorId ? updated : m))
+    );
+  }
+
+  async function handleDelete(monitorId: string) {
+    await deleteMonitor(monitorId);
+    setMonitors((current) => current.filter((m) => m._id !== monitorId));
+    setHistory((current) => {
+      const copy = { ...current };
+      delete copy[monitorId];
+      return copy;
+    });
+    setCheckResults((current) => {
+      const copy = { ...current };
+      delete copy[monitorId];
+      return copy;
+    });
+  }
 
   return (
     <div className="min-h-screen bg-zinc-950 px-6 py-10 text-white">
@@ -107,7 +133,7 @@ function App() {
         </p>
 
         <div className="mt-10">
-          <AddMonitorForm onCreated={loadMonitors} />
+          <AddMonitorForm onCreated={() => loadMonitors(false)} />
         </div>
 
         <section className="mt-10">
@@ -142,6 +168,8 @@ function App() {
                 checking={checking[monitor._id] ?? false}
                 history={history[monitor._id] ?? []}
                 onCheck={() => handleCheck(monitor._id)}
+                onUpdate={handleUpdate}
+                onDelete={handleDelete}
               />
             ))}
           </div>
@@ -150,5 +178,6 @@ function App() {
     </div>
   );
 }
+
 
 export default App;

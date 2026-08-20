@@ -8,10 +8,11 @@ from bson import ObjectId
 from fastapi import APIRouter, HTTPException
 
 from database.connection import db
-from models.monitor import MonitorCreate
+from models.monitor import MonitorCreate, MonitorUpdate
 
 from services.checker import perform_health_check, last_checked_times
 from models.health_check import HealthCheckResponse
+
 
 router = APIRouter()
 
@@ -81,4 +82,53 @@ async def get_monitor_history(monitor_id: str):
         check.pop("_id", None)
         check.pop("monitor_id", None)
 
-    return history
+    return history
+
+
+@router.patch("/api/monitors/{monitor_id}")
+async def update_monitor(monitor_id: str, update_data: MonitorUpdate):
+    if not ObjectId.is_valid(monitor_id):
+        raise HTTPException(status_code=400, detail="Invalid monitor ID")
+
+    fields_to_update = {
+        k: v for k, v in update_data.model_dump(mode="json").items() if v is not None
+    }
+
+    if not fields_to_update:
+        raise HTTPException(status_code=400, detail="No fields provided to update")
+
+    result = await db.monitors.find_one_and_update(
+        {"_id": ObjectId(monitor_id)},
+        {"$set": fields_to_update},
+        return_document=True,
+    )
+
+    if not result:
+        raise HTTPException(status_code=404, detail="Monitor not found")
+
+    result["_id"] = str(result["_id"])
+    return {
+        "message": "Monitor updated",
+        "monitor": result,
+    }
+
+
+@router.delete("/api/monitors/{monitor_id}")
+async def delete_monitor(monitor_id: str):
+    if not ObjectId.is_valid(monitor_id):
+        raise HTTPException(status_code=400, detail="Invalid monitor ID")
+
+    result = await db.monitors.delete_one({"_id": ObjectId(monitor_id)})
+
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Monitor not found")
+
+    # Clean up associated health checks
+    await db.health_checks.delete_many({"monitor_id": ObjectId(monitor_id)})
+    last_checked_times.pop(monitor_id, None)
+
+    return {
+        "message": "Monitor deleted",
+        "id": monitor_id,
+    }
+

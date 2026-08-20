@@ -94,3 +94,37 @@ export async function getMonitorHistory(
 
   return response.json();
 }
+
+// update an existing monitor
+
+export async function updateMonitor(
+  monitorId: string,
+  data: Partial<MonitorCreate>
+): Promise<Monitor> {
+  const response = await fetch(`${API_URL}/api/monitors/${monitorId}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to update monitor");
+  }
+
+  const result = await response.json();
+  return result.monitor;
+}
+
+// delete a monitor
+
+export async function deleteMonitor(monitorId: string): Promise<void> {
+  const response = await fetch(`${API_URL}/api/monitors/${monitorId}`, {
+    method: "DELETE",
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to delete monitor");
+  }
+}
