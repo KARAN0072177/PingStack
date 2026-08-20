@@ -1,0 +1,24 @@
+# Dependencies
+client/node_modules/
+
+# Python
+server/.venv/
+server/__pycache__/
+server/**/*.pyc
+
+# Environment variables
+server/.env
+client/.env
+client/.env.local
+
+# Build output
+client/dist/
+client/build/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
